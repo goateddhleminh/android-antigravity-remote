@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Antigravity Terminal</title>
+  <link rel="stylesheet" href="xterm.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #terminal {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0D1117;
+      touch-action: pan-y;
+    }
+    .xterm {
+      padding: 4px 6px;
+      height: 100%;
+    }
+    .xterm-viewport {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+  <script src="xterm.min.js"></script>
+  <script src="addon-fit.min.js"></script>
+  <script>
+    (function () {
+      let currentFontSize = 13;
+
+      const term = new window.Terminal({
+        cursorBlink: true,
+        cursorStyle: 'block',
+        fontSize: currentFontSize,
+        fontFamily: 'ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, monospace',
+        scrollback: 5000,
+        convertEol: false,
+        allowProposedApi: true,
+        theme: {
+          background: '#0D1117',
+          foreground: '#E6EDF3',
+          cursor: '#58A6FF',
+          cursorAccent: '#0D1117',
+          selectionBackground: '#264F78',
+          black: '#484F58',
+          red: '#FF7B72',
+          green: '#3FB950',
+          yellow: '#D29922',
+          blue: '#58A6FF',
+          magenta: '#BC8CFF',
+          cyan: '#39C5CF',
+          white: '#B1BAC4',
+          brightBlack: '#6E7681',
+          brightRed: '#FFA198',
+          brightGreen: '#56D364',
+          brightYellow: '#E3B341',
+          brightBlue: '#79C0FF',
+          brightMagenta: '#D2A8FF',
+          brightCyan: '#56D4DD',
+          brightWhite: '#F0F6FC'
+        }
+      });
+
+      const fitAddon = new window.FitAddon.FitAddon();
+      term.loadAddon(fitAddon);
+
+      const container = document.getElementById('terminal');
+      term.open(container);
+
+      function doFit() {
+        try {
+          fitAddon.fit();
+          if (window.AndroidTerminal && window.AndroidTerminal.onResize) {
+            window.AndroidTerminal.onResize(term.cols, term.rows);
+          }
+        } catch (e) {
+          // ignore during layout transitions
+        }
+      }
+
+      setTimeout(doFit, 50);
+      window.addEventListener('resize', doFit);
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(doFit).observe(container);
+      }
+
+      term.onData(function (data) {
+        if (window.AndroidTerminal && window.AndroidTerminal.onInput) {
+          window.AndroidTerminal.onInput(data);
+        }
+      });
+
+      // Bridge methods called from Kotlin
+      window.agyTerm = {
+        writeBase64: function (b64) {
+          try {
+            const binary = atob(b64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            term.write(bytes);
+          } catch (e) {
+            // fallback
+          }
+        },
+        clear: function () {
+          term.clear();
+          term.reset();
+        },
+        focus: function () {
+          term.focus();
+        },
+        fit: doFit,
+        setFontSize: function (size) {
+          currentFontSize = Math.max(9, Math.min(24, size));
+          term.options.fontSize = currentFontSize;
+          doFit();
+        },
+        getFontSize: function () {
+          return currentFontSize;
+        },
+        getSelection: function () {
+          return term.getSelection() || '';
+        },
+        scrollToBottom: function () {
+          term.scrollToBottom();
+        }
+      };
+
+      if (window.AndroidTerminal && window.AndroidTerminal.onReady) {
+        window.AndroidTerminal.onReady(term.cols, term.rows);
+      }
+    })();
+  </script>
+</body>
+</html>

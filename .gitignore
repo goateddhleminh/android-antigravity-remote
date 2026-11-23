@@ -1,0 +1,17 @@
+# Companion (Node.js)
+companion/node_modules/
+companion/dist/
+*.log
+
+# Android / Gradle
+android/.gradle/
+android/.idea/
+android/local.properties
+android/build/
+android/app/build/
+*.iml
+
+# OS / Misc
+.DS_Store
+Thumbs.db
+agy-remote-source.zip
